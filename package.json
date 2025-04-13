@@ -1,0 +1,31 @@
+{
+    "name": "binance-socket",
+    "version": "1.0.0",
+    "description": "Binance Socket",
+    "repository": {
+        "url": ""
+    },
+    "author": "binance-socket",
+    "main": "index.js",
+    "license": "MIT",
+    "private": "true",
+    "scripts": {
+        "start": "node ./dist/index.js",
+        "build": "tsc -p .",
+        "dev": "nodemon ./src/index.ts",
+        "prod": "tsc -p . && git add . && git commit -m 'update' && git push"
+    },
+    "dependencies": {
+        "express": "^5.1.0",
+        "nodemon": "^3.1.1",
+        "ts-node": "^10.9.2",
+        "ws": "^8.18.1"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.17.21",
+        "@types/node": "^20.12.12",
+        "@types/ws": "^8.18.1",
+        "typescript": "^5.4.5"
+    }
+}
