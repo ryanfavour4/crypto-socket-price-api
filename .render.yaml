@@ -1,0 +1,6 @@
+services:
+    - type: web
+      name: my-express-app
+      env: node
+      buildCommand: "npm install && npm run build"
+      startCommand: "npm start"
