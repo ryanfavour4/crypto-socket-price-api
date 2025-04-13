@@ -8,7 +8,6 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
-// Track Binance WebSocket streams per symbol
 const binanceSockets: Record<string, WebSocket> = {};
 const subscribers: Record<string, Set<WebSocket>> = {};
 
@@ -16,6 +15,11 @@ const createBinanceStream = (symbol: string) => {
     const binanceWS = new WebSocket(
         `wss://stream.binance.com:9443/ws/${symbol}@ticker`
     );
+
+    binanceWS.on("open", () => {
+        console.log(`[Binance] Connected to ${symbol}`);
+        binanceSockets[symbol] = binanceWS;
+    });
 
     binanceWS.on("message", (data) => {
         subscribers[symbol]?.forEach((client) => {
@@ -26,10 +30,15 @@ const createBinanceStream = (symbol: string) => {
     });
 
     binanceWS.on("close", () => {
-        delete binanceSockets[symbol];
+        console.log(`[Binance] Closed connection for ${symbol}`);
+        if (binanceSockets[symbol]) {
+            delete binanceSockets[symbol];
+        }
     });
 
-    binanceSockets[symbol] = binanceWS;
+    binanceWS.on("error", (err) => {
+        console.error(`[Binance] Error on ${symbol}:`, err.message);
+    });
 };
 
 server.on("upgrade", (request, socket, head) => {
@@ -37,7 +46,7 @@ server.on("upgrade", (request, socket, head) => {
     const symbol = (parsedUrl.pathname || "").replace(/\//g, "").toLowerCase();
 
     if (!symbol) {
-        socket.destroy(); // Close the connection if no symbol provided
+        socket.destroy();
         return;
     }
 
@@ -47,7 +56,10 @@ server.on("upgrade", (request, socket, head) => {
 });
 
 wss.on("connection", (ws: WebSocket, _req: IncomingMessage, symbol: string) => {
-    if (!subscribers[symbol]) subscribers[symbol] = new Set();
+    if (!subscribers[symbol]) {
+        subscribers[symbol] = new Set();
+    }
+
     subscribers[symbol].add(ws);
     console.log(`Client subscribed to ${symbol}`);
 
@@ -58,8 +70,9 @@ wss.on("connection", (ws: WebSocket, _req: IncomingMessage, symbol: string) => {
     ws.on("close", () => {
         subscribers[symbol]?.delete(ws);
         if (subscribers[symbol]?.size === 0) {
-            binanceSockets[symbol]?.close();
-            delete subscribers[symbol];
+            if (binanceSockets[symbol]) {
+                binanceSockets[symbol].close();
+            }
             delete subscribers[symbol];
         }
     });
